@@ -72,7 +72,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     Toast.makeText(this, "RUN", Toast.LENGTH_LONG).show()
                     initHavoc()
                 }, 500)
-            }, 10000)
+            }, 16180)
         }
     }
 
