@@ -1,13 +1,17 @@
 package app.ifnyas.vaquita.activity
 
 import android.animation.LayoutTransition
+import android.content.Intent
 import android.content.res.Resources
+import android.location.Address
+import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -15,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.ifnyas.vaquita.R
+import app.ifnyas.vaquita.Splash
 import app.ifnyas.vaquita.adapter.MapsAdapter
 import app.ifnyas.vaquita.adapter.OnItemClickListener
 import app.ifnyas.vaquita.adapter.addOnItemClickListener
@@ -25,6 +30,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import kotlinx.android.synthetic.main.activity_maps.*
+import java.math.RoundingMode
+import java.util.*
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -42,6 +49,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var items: ArrayList<MapsData>
     private lateinit var shown: ArrayList<MapsData>
 
+    // please change havocEnabled to false if you're a serious person
+    private val havocEnabled = true
+    private var havoc = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
@@ -52,6 +63,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // init fun starter pack
         initFun()
+
+        // init havoc!
+        if (havocEnabled == true) {
+            Handler().postDelayed({
+                if (expanded == 1) expandList(0)
+                Handler().postDelayed({
+                    Toast.makeText(this, "RUN", Toast.LENGTH_LONG).show()
+                    initHavoc()
+                }, 500)
+            }, 10000)
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -158,15 +180,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val loc = LatLng(lat, lng)
             val marker = mMap.addMarker(
                 MarkerOptions().position(loc)
-                .draggable(false)
-                .icon(BitmapDescriptorFactory
-                    .defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                    .draggable(false)
+                    .icon(
+                        BitmapDescriptorFactory
+                            .defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+                    )
             )
             markers.add(marker)
         }
 
         // create marker camera idle
         mMap.setOnCameraIdleListener {
+            // make sure radius removed
+            mRad.remove()
+
             // save current loc
             cLoc = mLatLng
 
@@ -183,59 +210,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     .fillColor(ContextCompat.getColor(this, R.color.colorRadius))
             )
 
-            // check inside radius
-            for (i in 0 until items.size) {
-                // init val
-                val lat = items[i].lat
-                val lng = items[i].lng
-                val loc = LatLng(lat, lng)
-                val distance = FloatArray(1)
-
-                // calculate distance
-                Location.distanceBetween(
-                    loc.latitude, loc.longitude,
-                    mRad.center.latitude, mRad.center.longitude, distance
-                )
-                items[i].distance = distance[0]
-
-                // set item insider value
-                if (distance[0] < mRad.radius) {
-                    items[i].insider = 1
-                } else {
-                    items[i].insider = 0
-                }
-
-                // update adapter
-                if (items[i].insider == 1) {
-                    if (!shown.contains(items[i])) {
-                        shown.add(items[i])
-                    }
-                } else {
-                    if (shown.contains(items[i])) {
-                        shown.remove((items[i]))
-                    }
-                }
-                shown.sortBy { it.distance }
-                viewAdapter.notifyDataSetChanged()
-            }
-
-            // set info text
-            info_view.text = when (viewAdapter.itemCount) {
-                1 -> "1 Province near me"
-                0 -> "No province near me"
-                else -> "${viewAdapter.itemCount} Provinces near me"
-            }
-
-            // set end list text
-            end_view.text = when (viewAdapter.itemCount) {
-                0 -> "Empty list"
-                else -> "End of list"
-            }
+            updateList()
         }
 
         // move marker when camera move
         mMap.setOnCameraMoveListener {
-            // remove last radius and marker
+            // remove last radius
             mRad.remove()
 
             // show view progress
@@ -244,6 +224,60 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             mLatLng = mMap.cameraPosition.target
             mMark.position = mLatLng
+            cLoc = mLatLng
+        }
+    }
+
+    private fun updateList() {
+        // check inside radius
+        for (i in 0 until items.size) {
+            // init val
+            val lat = items[i].lat
+            val lng = items[i].lng
+            val loc = LatLng(lat, lng)
+            val distance = FloatArray(1)
+
+            // calculate distance
+            Location.distanceBetween(
+                loc.latitude, loc.longitude,
+                cLoc.latitude, cLoc.longitude, distance
+            )
+            items[i].distance = distance[0]
+
+            // set item insider value
+            if (distance[0] < 161803.3) {
+                items[i].insider = 1
+            } else {
+                items[i].insider = 0
+            }
+
+            // update adapter
+            if (items[i].insider == 1) {
+                if (!shown.contains(items[i])) {
+                    shown.add(items[i])
+                }
+            } else {
+                if (shown.contains(items[i])) {
+                    shown.remove((items[i]))
+                }
+            }
+        }
+
+        // sort and update list
+        shown.sortBy { it.distance }
+        viewAdapter.notifyDataSetChanged()
+
+        // set info text
+        info_view.text = when (viewAdapter.itemCount) {
+            1 -> "1 Province near me"
+            0 -> "No province near me"
+            else -> "${viewAdapter.itemCount} Provinces near me"
+        }
+
+        // set end list text
+        end_view.text = when (viewAdapter.itemCount) {
+            0 -> "Empty list"
+            else -> "End of list"
         }
     }
 
@@ -323,5 +357,113 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             maps_layout.updateViewLayout(card_view, cardParams)
             maps_layout.updateViewLayout(scroll_view, scrollParams)
         },400)
+    }
+
+    private fun initHavoc() {
+        // set view
+        loc_btn.visibility = View.GONE
+        exp_btn.visibility = View.GONE
+        end_view.visibility = View.GONE
+
+        // for your safety
+        card_view.setOnTouchListener { _, _ ->
+            return@setOnTouchListener true
+        }
+        mMap.setOnMarkerClickListener {
+            return@setOnMarkerClickListener true
+        }
+
+        // you only live once
+        var live = 1
+
+        // please stand away from zombies
+        if (havoc == 0) {
+            for (i in 0 until shown.size) {
+                val distance = FloatArray(1)
+                Location.distanceBetween(
+                    shown[i].lat, shown[i].lng,
+                    cLoc.latitude, cLoc.longitude, distance
+                )
+
+                if (distance[0] < 32360) {
+                    cLoc = LatLng(-2.600029, 118.015776)
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(cLoc))
+                }
+            }
+        }
+
+        // start havoc
+        havoc = 1
+        havoc_view.visibility = View.VISIBLE
+        havoc_view.text = "RUN, DON'T GET CAUGHT"
+
+        // move zombies per sec
+        Handler().postDelayed({
+            // calculating movement
+            for (i in 0 until markers.size) {
+                val difX = markers[i].position.latitude - cLoc.latitude
+                val newLat =
+                    if (difX < 0) markers[i].position.latitude + 0.05
+                    else markers[i].position.latitude - 0.05
+
+                val difY = markers[i].position.longitude - cLoc.longitude
+                val newLng =
+                    if (difY < 0) markers[i].position.longitude + 0.05
+                    else markers[i].position.longitude - 0.05
+
+                val newLoc = LatLng(newLat, newLng)
+                markers[i].position = newLoc
+
+                // calculate distance
+                val distance = FloatArray(1)
+                Location.distanceBetween(
+                    newLoc.latitude, newLoc.longitude,
+                    cLoc.latitude, cLoc.longitude, distance
+                )
+
+                // set new values
+                items[i].lat = newLoc.latitude.toBigDecimal()
+                    .setScale(6, RoundingMode.HALF_UP).toDouble()
+
+                items[i].lng = newLoc.longitude.toBigDecimal()
+                    .setScale(6, RoundingMode.HALF_UP).toDouble()
+
+                items[i].distance = distance[0]
+
+                // if you get caught
+                if (distance[0] < 16180) {
+                    live = 0
+                    // freeze map
+                    mMap.uiSettings.setAllGesturesEnabled(false)
+                }
+            }
+
+            // if still alive
+            if (live == 1) {
+                // run again
+                viewAdapter.notifyDataSetChanged()
+                updateList()
+                initHavoc()
+            } else {
+                // run ends
+                val geo = Geocoder(this, Locale.getDefault())
+                val addresses: List<Address> = geo
+                    .getFromLocation(cLoc.latitude, cLoc.longitude, 1)
+                val place = addresses[0].getAddressLine(0)
+
+                // set caught view
+                recycler_view.visibility = View.GONE
+                info_view.visibility = View.INVISIBLE
+                caught_view.visibility = View.VISIBLE
+                havoc_view.text = "You get caught in $place"
+
+                // show retry btn
+                retry_btn.visibility = View.VISIBLE
+                retry_btn.setOnClickListener {
+                    startActivity(Intent(this, Splash::class.java))
+                    finish()
+                }
+            }
+        }, 1000)
     }
 }

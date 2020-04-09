@@ -7,7 +7,6 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.net.ConnectivityManager
-import android.opengl.Visibility
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
@@ -75,7 +74,7 @@ class Splash : AppCompatActivity() {
         var networkEnabled = false
 
         try {
-            gpsEnabled = lm!!.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
         } catch (e: SecurityException) {
             setProgress(e.toString(), 1)
         }
@@ -204,11 +203,9 @@ class Splash : AppCompatActivity() {
 
                     catch (e: JSONException) {
                         setProgress(e.toString(), 1)
-                        progress_bar.visibility = View.INVISIBLE
                     }
                     catch (e: IOException) {
                         setProgress(e.toString(), 1)
-                        progress_bar.visibility = View.INVISIBLE
                     }
                 }
             }
@@ -220,6 +217,7 @@ class Splash : AppCompatActivity() {
     }
 
     private fun nextIntent() {
+        progress_bar.visibility = View.INVISIBLE
         Handler().postDelayed({
             val intent = Intent(this, MapsActivity::class.java)
             intent.putExtra("loc", loc)
@@ -235,6 +233,14 @@ class Splash : AppCompatActivity() {
             progress_bar.visibility = View.INVISIBLE
             ref_btn.visibility = View.VISIBLE
         }
+    }
+
+    override fun onBackPressed() {
+        AlertDialog.Builder(this)
+            .setMessage("Close app?")
+            .setPositiveButton("Yes") { _, _ -> finish() }
+            .setNegativeButton("No") { _, _ -> }
+            .create().show()
     }
 
     private val locationListener: LocationListener = object : LocationListener {
