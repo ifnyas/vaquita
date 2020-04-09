@@ -33,6 +33,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var mLoc: Location
+    private lateinit var cLoc: LatLng
+    private lateinit var markers: ArrayList<Marker>
 
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
@@ -149,19 +151,25 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         )
 
         // create items markers
+        markers = arrayListOf()
         for (i in 0 until items.size) {
             val lat = items[i].lat
             val lng = items[i].lng
             val loc = LatLng(lat, lng)
-            mMap.addMarker(MarkerOptions().position(loc)
+            val marker = mMap.addMarker(
+                MarkerOptions().position(loc)
                 .draggable(false)
                 .icon(BitmapDescriptorFactory
                     .defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
+            markers.add(marker)
         }
 
         // create marker camera idle
         mMap.setOnCameraIdleListener {
+            // save current loc
+            cLoc = mLatLng
+
             // hide view
             scroll_view.visibility = View.VISIBLE
             progress_bar.visibility = View.INVISIBLE
@@ -236,11 +244,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             mLatLng = mMap.cameraPosition.target
             mMark.position = mLatLng
-        }
-
-        // move marker when POI clicked
-        mMap.setOnPoiClickListener {
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it.latLng, 16f))
         }
     }
 
@@ -322,12 +325,3 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         },400)
     }
 }
-
-//marker.setIcon(BitmapDescriptorFactory.fromBitmap(resizeMapIcons("zombie100s", 64, 64)))
-//    private fun resizeMapIcons(iconName: String?, width: Int, height: Int): Bitmap? {
-//        val imageBitmap = BitmapFactory.decodeResource(
-//            resources,
-//            resources.getIdentifier(iconName, "drawable", packageName)
-//        )
-//        return Bitmap.createScaledBitmap(imageBitmap, width, height, false)
-//    }
