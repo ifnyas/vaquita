@@ -372,6 +372,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.setOnMarkerClickListener {
             return@setOnMarkerClickListener true
         }
+        recycler_view.apply {
+            addOnItemClickListener(object : OnItemClickListener {
+                override fun onItemClicked(position: Int, view: View) {
+                    return
+                }
+            })
+        }
 
         // you only live once
         var live = 1
@@ -403,13 +410,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             for (i in 0 until markers.size) {
                 val difX = markers[i].position.latitude - cLoc.latitude
                 val newLat =
-                    if (difX < 0) markers[i].position.latitude + 0.05
-                    else markers[i].position.latitude - 0.05
+                    if (difX < 0) markers[i].position.latitude + 0.08
+                    else markers[i].position.latitude - 0.08
 
                 val difY = markers[i].position.longitude - cLoc.longitude
                 val newLng =
-                    if (difY < 0) markers[i].position.longitude + 0.05
-                    else markers[i].position.longitude - 0.05
+                    if (difY < 0) markers[i].position.longitude + 0.08
+                    else markers[i].position.longitude - 0.08
 
                 val newLoc = LatLng(newLat, newLng)
                 markers[i].position = newLoc
