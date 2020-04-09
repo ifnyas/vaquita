@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Vaquita</string>
+    <string name="baseUrl">https://bing.com/covid/data</string>
+</resources>
